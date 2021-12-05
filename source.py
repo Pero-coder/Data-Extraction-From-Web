@@ -1,7 +1,11 @@
+import os
 import time
 from typing import NamedTuple, Optional, Dict, Tuple, List, Any
 
 import requests
+from bs4 import BeautifulSoup
+
+
 
 class FullScrap(NamedTuple):
     # TUTO TRIDU ROZHODNE NEMEN
@@ -32,6 +36,22 @@ def download_webpage(url: str, *args, **kwargs) -> requests.Response:
     return requests.get(url, *args, **kwargs)
 
 
+def save_webpage(url: str) -> None:
+    pass
+    # splited_url = url.split("/")[3:]
+
+    # if len(splited_url) == 1:
+    #     page_file = f"saved_pages/{splited_url[0]}"
+
+    # else: 
+    #     if not os.path.isdir(f"saved_pages/{splited_url[0]}"):
+    #         os.mkdir(f"saved_pages/{splited_url[0]}")
+    #     page_file = f"saved_pages/{splited_url[0]}/{splited_url[1]}"
+
+    # with open(page_file, "w") as page:
+    #     page.write()
+
+
 def get_linux_only_availability(base_url: str) -> List[str]:
     """
     Finds all functions that area available only on Linux systems
@@ -41,6 +61,36 @@ def get_linux_only_availability(base_url: str) -> List[str]:
     # Tuto funkci implementuj
     pass
 
+all_pages_list = ["https://python.iamroot.eu/"]
+def get_all_pages(base_url: str) -> List[str]:
+    # try:
+    #     splited_url = base_url.split("/")[3:]
+
+    #     if len(splited_url) == 1:
+    #         page_file = open(f"saved_pages/{splited_url[0]}", "r")
+
+    #     else: 
+    #         page_file = open(f"saved_pages/{splited_url[0]}/{splited_url[1]}", "r")
+
+    #     page = page_file.read()
+    #     page_file.close()
+    
+    # except:
+    responce = download_webpage(base_url)
+    page  = responce.content
+    save_webpage(base_url)
+
+    soup = BeautifulSoup(page, "html.parser")
+    a_tags = soup.find_all("a")
+    
+    for a in a_tags:
+        url = a.get("href")
+        print(url)
+        if url != base_url and url not in all_pages_list and url.startswith("https://python.iamroot.eu/"):
+            all_pages_list.append(url)
+            get_all_pages(url)
+    
+
 
 def get_most_visited_webpage(base_url: str) -> Tuple[int, str]:
     """
@@ -48,8 +98,27 @@ def get_most_visited_webpage(base_url: str) -> Tuple[int, str]:
     :param base_url: base url of the website
     :return: number of anchors to this page and its URL
     """
-    # Tuto funkci implementuj
     pass
+    # response = requests.get(base_url)
+    # page = response.content
+    # soup = BeautifulSoup(page, "html.parser")
+    # a_tags = soup.find_all("a")
+
+    # page_visits = []
+
+    # for a in a_tags:
+    #     url = a.get("href")
+
+    #     new_page = True
+    #     if page_visits != []:
+    #         for item in page_visits:
+    #             if url in item:
+    #                 item[0] += get_page_visits_count(url)
+    #                 new_page = False
+
+    #     if new_page:
+    #         page_visits.append((get_page_visits_count(url), url))
+
 
 
 def get_changes(base_url: str) -> List[Tuple[int, str]]:
@@ -106,6 +175,13 @@ def main() -> None:
     """
     # Tuto funkci klidne muzes zmenit podle svych preferenci :)
     import json
+
+    if not os.path.isdir("saved_pages"):
+        os.mkdir("saved_pages")
+
+    get_all_pages('https://python.iamroot.eu/')
+    print(all_pages_list)
+
     time_start = time.time()
     print(json.dumps(scrap_all('https://python.iamroot.eu/').as_dict()))
     print('took', int(time.time() - time_start), 's')
