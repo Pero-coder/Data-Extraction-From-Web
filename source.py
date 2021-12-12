@@ -6,6 +6,70 @@ import requests
 from bs4 import BeautifulSoup
 
 
+"""
+#########################
+# CUSTOM-MADE FUNCTIONS #
+#########################
+"""
+
+all_pages_list = []
+def get_all_pages(base_url: str) -> List[str]:
+    soup = get_soup(base_url)
+    a_tags = soup.find_all("a")
+    
+    for a in a_tags:
+        url = a.get("href")
+
+        if not url.startswith("http"):
+            full_url = f"https://python.iamroot.eu/{url}"
+            if full_url not in all_pages_list:
+                if url.endswith(".html"):
+                    if url.find("../") == -1:
+                        if url.find("#") == -1:
+                            all_pages_list.append(full_url)
+                            get_all_pages(full_url)    
+
+
+def get_soup(base_url: str) -> BeautifulSoup:
+    if not base_url == "https://python.iamroot.eu/":
+        file_path = base_url[26:]
+
+        if os.path.exists(f"saved_pages/{file_path}"):
+            with open(f"saved_pages/{file_path}", "r", encoding="utf-8") as html_file:
+                return BeautifulSoup(html_file.read(), "html.parser")
+
+        else:
+            responce = download_webpage(base_url)
+            page  = responce.text
+            save_webpage(file_path, page)
+            return BeautifulSoup(page, "html.parser")
+    else:
+        if os.path.exists(f"saved_pages/index.html"):
+            with open(f"saved_pages/index.html", "r", encoding="utf-8") as html_file:
+                return BeautifulSoup(html_file.read(), "html.parser")
+
+        else:
+            responce = download_webpage(base_url)
+            page  = responce.text
+            save_webpage("index.html", page)
+            return BeautifulSoup(page, "html.parser")
+
+def save_webpage(file_path: str, page_content: str) -> None:
+    try:
+        with open(f"saved_pages/{file_path}", "w", encoding="utf-8") as html_file:
+            html_file.write(page_content)
+    except FileNotFoundError:
+        splited_path = file_path.split("/")
+        os.mkdir(f"saved_pages/{splited_path[0]}")
+        with open(f"saved_pages/{splited_path[0]}/{splited_path[1]}", "w", encoding="utf-8") as html_file:
+            html_file.write(page_content)
+
+
+"""
+#########################
+# TEMPLATE FUNCTIONS #
+#########################
+"""
 
 class FullScrap(NamedTuple):
     # TUTO TRIDU ROZHODNE NEMEN
@@ -36,22 +100,6 @@ def download_webpage(url: str, *args, **kwargs) -> requests.Response:
     return requests.get(url, *args, **kwargs)
 
 
-def save_webpage(url: str) -> None:
-    pass
-    # splited_url = url.split("/")[3:]
-
-    # if len(splited_url) == 1:
-    #     page_file = f"saved_pages/{splited_url[0]}"
-
-    # else: 
-    #     if not os.path.isdir(f"saved_pages/{splited_url[0]}"):
-    #         os.mkdir(f"saved_pages/{splited_url[0]}")
-    #     page_file = f"saved_pages/{splited_url[0]}/{splited_url[1]}"
-
-    # with open(page_file, "w") as page:
-    #     page.write()
-
-
 def get_linux_only_availability(base_url: str) -> List[str]:
     """
     Finds all functions that area available only on Linux systems
@@ -60,36 +108,6 @@ def get_linux_only_availability(base_url: str) -> List[str]:
     """
     # Tuto funkci implementuj
     pass
-
-all_pages_list = ["https://python.iamroot.eu/"]
-def get_all_pages(base_url: str) -> List[str]:
-    # try:
-    #     splited_url = base_url.split("/")[3:]
-
-    #     if len(splited_url) == 1:
-    #         page_file = open(f"saved_pages/{splited_url[0]}", "r")
-
-    #     else: 
-    #         page_file = open(f"saved_pages/{splited_url[0]}/{splited_url[1]}", "r")
-
-    #     page = page_file.read()
-    #     page_file.close()
-    
-    # except:
-    responce = download_webpage(base_url)
-    page  = responce.content
-    save_webpage(base_url)
-
-    soup = BeautifulSoup(page, "html.parser")
-    a_tags = soup.find_all("a")
-    
-    for a in a_tags:
-        url = a.get("href")
-        print(url)
-        if url != base_url and url not in all_pages_list and url.startswith("https://python.iamroot.eu/"):
-            all_pages_list.append(url)
-            get_all_pages(url)
-    
 
 
 def get_most_visited_webpage(base_url: str) -> Tuple[int, str]:
@@ -118,7 +136,6 @@ def get_most_visited_webpage(base_url: str) -> Tuple[int, str]:
 
     #     if new_page:
     #         page_visits.append((get_page_visits_count(url), url))
-
 
 
 def get_changes(base_url: str) -> List[Tuple[int, str]]:
@@ -174,15 +191,16 @@ def main() -> None:
     :return:
     """
     # Tuto funkci klidne muzes zmenit podle svych preferenci :)
+    time_start = time.time()
+    
     import json
 
     if not os.path.isdir("saved_pages"):
         os.mkdir("saved_pages")
 
     get_all_pages('https://python.iamroot.eu/')
-    print(all_pages_list)
+    print(len(all_pages_list))
 
-    time_start = time.time()
     print(json.dumps(scrap_all('https://python.iamroot.eu/').as_dict()))
     print('took', int(time.time() - time_start), 's')
 
