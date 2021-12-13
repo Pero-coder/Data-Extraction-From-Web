@@ -128,8 +128,27 @@ def get_linux_only_availability(base_url: str) -> List[str]:
     :param base_url: base url of the website
     :return: all function names that area available only on Linux systems
     """
-    # Tuto funkci implementuj
-    pass
+    print("Getting linux avaible functions...")
+    unix_avaible_functions = []
+    required_words = ["Unix", "Linux"]
+    prohibited_words = ["Windows", "BSD", "AIX"]
+    for page in all_pages_list:
+        soup = get_soup(page)
+
+        func = soup.find_all("dl", class_ = "function")
+        for dl in func:
+            try:
+                p = dl.find("p", class_ = "availability")
+                required_word = [x for x in required_words if p.text.find(x) > -1]
+                prohibited_word = [x for x in prohibited_words if p.text.find(x) > -1]
+                if required_word and not prohibited_word:
+                    dt = dl.find("dt")
+                    unix_avaible_functions.append(dt.get("id"))
+
+            except AttributeError:
+                pass
+
+    return unix_avaible_functions
 
 
 def get_most_visited_webpage() -> Tuple[int, str]:
@@ -139,6 +158,7 @@ def get_most_visited_webpage() -> Tuple[int, str]:
     :return: number of anchors to this page and its URL
     """
     print("Getting most visited page...")
+    return
     link_visits = {}
     for page in all_pages_list:
         soup = get_soup(page)
