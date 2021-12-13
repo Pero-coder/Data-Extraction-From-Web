@@ -4,6 +4,7 @@ from typing import NamedTuple, Optional, Dict, Tuple, List, Any
 
 import requests
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin
 
 
 """
@@ -22,19 +23,20 @@ def get_all_pages(base_url: str) -> List[str]:
     for a in a_tags:
         url = a.get("href")
 
-        if not url.startswith("http"):
-            full_url = f"https://python.iamroot.eu/{url}"
-            if full_url not in all_pages_list:
-                if url.endswith(".html"):
-                    if url.find("../") == -1:
-                        if url.find("#") == -1:
-                            # soup = get_soup(full_url)
-                            # title = soup.find('title')
+        if is_url_valid(url):
+            full_url = urljoin(base_url, url) #f"https://python.iamroot.eu/{url}"
+            if not full_url in all_pages_list:
+                all_pages_list.append(full_url)
+                get_all_pages(full_url)    
 
-                            # if not title.string.find("Borýsek | Stránka nebyla nalezena (404)") > -1:
-                            all_pages_list.append(full_url)
-                            
-                            get_all_pages(full_url)    
+
+def is_url_valid(url: str) -> bool:
+    if not url.startswith("http"):
+        if url.endswith(".html"):
+            #if url.find("../") == -1:
+                if url.find("#") == -1:
+                    return True
+    return False
 
 
 def get_soup(base_url: str) -> BeautifulSoup:
@@ -49,12 +51,13 @@ def get_soup(base_url: str) -> BeautifulSoup:
             responce = download_webpage(base_url)
             page  = responce.text
             soup = BeautifulSoup(page, "html.parser")
-            title = soup.find('title')
-            if title.string.find("Borýsek | Stránka nebyla nalezena (404)") > -1:
-                save_webpage(file_path, "")
-            else:
-                save_webpage(file_path, page)
-                return soup
+            # title = soup.find('title')
+            # if title.string.find("Borýsek | Stránka nebyla nalezena (404)") > -1:
+            #     save_webpage(file_path, "")
+            #     return
+            # else:
+            save_webpage(file_path, page)
+            return soup
     else:
         if os.path.exists(f"saved_pages/index.html"):
             with open(f"saved_pages/index.html", "r", encoding="utf-8") as html_file:
@@ -144,26 +147,39 @@ def get_most_visited_webpage(base_url: str) -> Tuple[int, str]:
     """
     return
     print("Getting most visited page...")
-    for page in all_pages_list:
-        soup = get_soup(page)
-        a_tags = soup.find_all("a")
+    most_visited_link = (0, "")
+    for link in all_pages_list:
+        link_visits = 0
+        for page in all_pages_list:
+            soup = get_soup(page)
+            a_tags = soup.find_all("a")
 
-        page_visits = []
+            if link != page:
+                for a in a_tags:
+                    url = a.get("href")
 
-        for a in a_tags:
-            url = a.get("href")
-
-            new_page = True
-            if page_visits != []:
-                for item in page_visits:
-                    if url in item:
-                        item[0] += get_page_visits_count(url)
-                        new_page = False
-
-            if new_page:
-                page_visits.append((get_page_visits_count(url), url))
+                    if url.find(link) > -1:
+                        if not url.startswith("http"):
+                            if url.endswith(".html"):
+                                if url.find("../") == -1:
+                                    if url.find("#") == -1:
+                                        link_visits += 1
         
-        print(page_visits)
+        if link_visits > most_visited_link[0]:
+            most_visited_link = (link_visits, link)
+    
+    return most_visited_link
+        #         new_page = True
+        #         if page_visits != []:
+        #             for item in page_visits:
+        #                 if url in item:
+        #                     item[0] += get_page_visits_count(url)
+        #                     new_page = False
+
+        #         if new_page:
+        #             page_visits.append((get_page_visits_count(url), url))
+        
+        # print(page_visits)
 
 
 def get_changes(base_url: str) -> List[Tuple[int, str]]:
