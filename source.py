@@ -16,15 +16,13 @@ from urllib.parse import urljoin
 all_pages_list = []
 def get_all_pages(base_url: str) -> List[str]:
     soup = get_soup(base_url)
-    if soup is None:
-        return
     a_tags = soup.find_all("a")
     
     for a in a_tags:
         url = a.get("href")
 
         if is_url_valid(url):
-            full_url = urljoin(base_url, url) #f"https://python.iamroot.eu/{url}"
+            full_url = urljoin(base_url, url)
             if not full_url in all_pages_list:
                 all_pages_list.append(full_url)
                 get_all_pages(full_url)    
@@ -33,9 +31,8 @@ def get_all_pages(base_url: str) -> List[str]:
 def is_url_valid(url: str) -> bool:
     if not url.startswith("http"):
         if url.endswith(".html"):
-            #if url.find("../") == -1:
-                if url.find("#") == -1:
-                    return True
+            if url.find("#") == -1:
+                return True
     return False
 
 
@@ -48,22 +45,18 @@ def get_soup(base_url: str) -> BeautifulSoup:
                 return BeautifulSoup(html_file.read(), "html.parser")
 
         else:
+            time.sleep(0.5)
             responce = download_webpage(base_url)
             page  = responce.text
-            soup = BeautifulSoup(page, "html.parser")
-            # title = soup.find('title')
-            # if title.string.find("Borýsek | Stránka nebyla nalezena (404)") > -1:
-            #     save_webpage(file_path, "")
-            #     return
-            # else:
             save_webpage(file_path, page)
-            return soup
+            return BeautifulSoup(page, "html.parser")
     else:
         if os.path.exists(f"saved_pages/index.html"):
             with open(f"saved_pages/index.html", "r", encoding="utf-8") as html_file:
                 return BeautifulSoup(html_file.read(), "html.parser")
 
         else:
+            time.sleep(0.5)
             responce = download_webpage(base_url)
             page  = responce.text
             save_webpage("index.html", page)
@@ -139,47 +132,29 @@ def get_linux_only_availability(base_url: str) -> List[str]:
     pass
 
 
-def get_most_visited_webpage(base_url: str) -> Tuple[int, str]:
+def get_most_visited_webpage() -> Tuple[int, str]:
     """
     Finds the page with most links to it
     :param base_url: base url of the website
     :return: number of anchors to this page and its URL
     """
-    return
     print("Getting most visited page...")
-    most_visited_link = (0, "")
-    for link in all_pages_list:
-        link_visits = 0
-        for page in all_pages_list:
-            soup = get_soup(page)
-            a_tags = soup.find_all("a")
+    link_visits = {}
+    for page in all_pages_list:
+        soup = get_soup(page)
+        a_tags = soup.find_all("a")
 
-            if link != page:
-                for a in a_tags:
-                    url = a.get("href")
+        for a in a_tags:
+            url = a.get("href")
+            if is_url_valid(url):
+                full_url = urljoin(page, url)
+                try:
+                    link_visits[full_url] += 1
+                except KeyError:
+                    link_visits[full_url] = 1
 
-                    if url.find(link) > -1:
-                        if not url.startswith("http"):
-                            if url.endswith(".html"):
-                                if url.find("../") == -1:
-                                    if url.find("#") == -1:
-                                        link_visits += 1
-        
-        if link_visits > most_visited_link[0]:
-            most_visited_link = (link_visits, link)
-    
-    return most_visited_link
-        #         new_page = True
-        #         if page_visits != []:
-        #             for item in page_visits:
-        #                 if url in item:
-        #                     item[0] += get_page_visits_count(url)
-        #                     new_page = False
-
-        #         if new_page:
-        #             page_visits.append((get_page_visits_count(url), url))
-        
-        # print(page_visits)
+    most_visited_page = max(link_visits)
+    return (link_visits[most_visited_page], most_visited_page)
 
 
 def get_changes(base_url: str) -> List[Tuple[int, str]]:
@@ -221,7 +196,7 @@ def scrap_all(base_url: str) -> FullScrap:
     # Tuto funkci muzes menit, ale musi vracet vzdy tyto data
     scrap = FullScrap(
         linux_only_availability=get_linux_only_availability(base_url),
-        most_visited_webpage=get_most_visited_webpage(base_url),
+        most_visited_webpage=get_most_visited_webpage(),
         changes=get_changes(base_url),
         params=get_most_params(base_url),
         tea_party=find_secret_tea_party(base_url)
