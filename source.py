@@ -15,6 +15,8 @@ from bs4 import BeautifulSoup
 all_pages_list = []
 def get_all_pages(base_url: str) -> List[str]:
     soup = get_soup(base_url)
+    if soup is None:
+        return
     a_tags = soup.find_all("a")
     
     for a in a_tags:
@@ -26,7 +28,12 @@ def get_all_pages(base_url: str) -> List[str]:
                 if url.endswith(".html"):
                     if url.find("../") == -1:
                         if url.find("#") == -1:
+                            # soup = get_soup(full_url)
+                            # title = soup.find('title')
+
+                            # if not title.string.find("Borýsek | Stránka nebyla nalezena (404)") > -1:
                             all_pages_list.append(full_url)
+                            
                             get_all_pages(full_url)    
 
 
@@ -41,8 +48,13 @@ def get_soup(base_url: str) -> BeautifulSoup:
         else:
             responce = download_webpage(base_url)
             page  = responce.text
-            save_webpage(file_path, page)
-            return BeautifulSoup(page, "html.parser")
+            soup = BeautifulSoup(page, "html.parser")
+            title = soup.find('title')
+            if title.string.find("Borýsek | Stránka nebyla nalezena (404)") > -1:
+                save_webpage(file_path, "")
+            else:
+                save_webpage(file_path, page)
+                return soup
     else:
         if os.path.exists(f"saved_pages/index.html"):
             with open(f"saved_pages/index.html", "r", encoding="utf-8") as html_file:
@@ -53,6 +65,7 @@ def get_soup(base_url: str) -> BeautifulSoup:
             page  = responce.text
             save_webpage("index.html", page)
             return BeautifulSoup(page, "html.parser")
+
 
 def save_webpage(file_path: str, page_content: str) -> None:
     try:
@@ -65,10 +78,23 @@ def save_webpage(file_path: str, page_content: str) -> None:
             html_file.write(page_content)
 
 
+def get_page_visits_count(url: str) -> int:
+    visits_count = 0
+    for page in all_pages_list:
+        soup = get_soup(page)
+        a_tags = soup.find_all("a")
+
+        for a in a_tags:
+            if a.get("href") == url:
+                visits_count += 1
+    
+    return visits_count
+
+
 """
-#########################
+######################
 # TEMPLATE FUNCTIONS #
-#########################
+######################
 """
 
 class FullScrap(NamedTuple):
@@ -116,26 +142,28 @@ def get_most_visited_webpage(base_url: str) -> Tuple[int, str]:
     :param base_url: base url of the website
     :return: number of anchors to this page and its URL
     """
-    pass
-    # response = requests.get(base_url)
-    # page = response.content
-    # soup = BeautifulSoup(page, "html.parser")
-    # a_tags = soup.find_all("a")
+    return
+    print("Getting most visited page...")
+    for page in all_pages_list:
+        soup = get_soup(page)
+        a_tags = soup.find_all("a")
 
-    # page_visits = []
+        page_visits = []
 
-    # for a in a_tags:
-    #     url = a.get("href")
+        for a in a_tags:
+            url = a.get("href")
 
-    #     new_page = True
-    #     if page_visits != []:
-    #         for item in page_visits:
-    #             if url in item:
-    #                 item[0] += get_page_visits_count(url)
-    #                 new_page = False
+            new_page = True
+            if page_visits != []:
+                for item in page_visits:
+                    if url in item:
+                        item[0] += get_page_visits_count(url)
+                        new_page = False
 
-    #     if new_page:
-    #         page_visits.append((get_page_visits_count(url), url))
+            if new_page:
+                page_visits.append((get_page_visits_count(url), url))
+        
+        print(page_visits)
 
 
 def get_changes(base_url: str) -> List[Tuple[int, str]]:
@@ -198,9 +226,10 @@ def main() -> None:
     if not os.path.isdir("saved_pages"):
         os.mkdir("saved_pages")
 
+    print("Getting all pages...")
     get_all_pages('https://python.iamroot.eu/')
-    print(len(all_pages_list))
-
+    print(len(all_pages_list), "in list")
+    
     print(json.dumps(scrap_all('https://python.iamroot.eu/').as_dict()))
     print('took', int(time.time() - time_start), 's')
 
