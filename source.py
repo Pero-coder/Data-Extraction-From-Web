@@ -1,6 +1,5 @@
 import os
 import time
-from types import coroutine
 from typing import NamedTuple, Optional, Dict, Tuple, List, Any
 
 import requests
@@ -134,10 +133,12 @@ def download_webpage(url: str, *args, **kwargs) -> requests.Response:
 def get_linux_only_availability() -> List[str]:
     """
     Finds all functions that area available only on Linux systems
-    :param base_url: base url of the website
     :return: all function names that area available only on Linux systems
     """
     return
+
+    # TODO add methods
+
     print("Getting linux avaible functions...")
     unix_avaible_functions = []
     required_words = ["Unix", "Linux"]
@@ -158,13 +159,25 @@ def get_linux_only_availability() -> List[str]:
             except AttributeError:
                 pass
 
+        method = soup.find_all("dl", class_ = "function")
+        for dl in func:
+            try:
+                p = dl.find("p", class_ = "availability")
+                required_word = [x for x in required_words if p.text.find(x) > -1]
+                prohibited_word = [x for x in prohibited_words if p.text.find(x) > -1]
+                if required_word and not prohibited_word:
+                    dt = dl.find("dt")
+                    unix_avaible_functions.append(dt.get("id"))
+
+            except AttributeError:
+                pass
+
     return unix_avaible_functions
 
 
 def get_most_visited_webpage() -> Tuple[int, str]:
     """
     Finds the page with most links to it
-    :param base_url: base url of the website
     :return: number of anchors to this page and its URL
     """
     return
@@ -187,12 +200,12 @@ def get_most_visited_webpage() -> Tuple[int, str]:
     return (link_visits[most_visited_page], most_visited_page)
 
 
-def get_changes(base_url: str) -> List[Tuple[int, str]]:
+def get_changes() -> List[Tuple[int, str]]:
     """
     Locates all counts of changes of functions and groups them by version
-    :param base_url: base url of the website
     :return: all counts of changes of functions and groups them by version, sorted from the most changes DESC
     """
+    return
     print("Getting changes...")
     changes = {}
 
@@ -232,11 +245,47 @@ def get_changes(base_url: str) -> List[Tuple[int, str]]:
 def get_most_params(base_url: str) -> List[Tuple[int, str]]:
     """
     Finds the function that accepts more than 10 parameters
-    :param base_url: base url of the website
     :return: number of parameters of this function and its name, sorted by the count DESC
     """
-    # Tuto funkci implementuj
-    pass
+    print("Getting most parameters...")
+    most_parm_functions = {}
+
+    for page in all_pages_list:
+        soup = get_soup(page)
+
+        func = soup.find_all("dl", class_ = "function")
+        for dl in func:
+            func_names = dl.find_all("dt")
+            for dt in func_names:
+                parameters = dt.find_all("em", class_ = "sig-param")
+                parm_count = 0
+
+                for _ in parameters:
+                    parm_count += 1
+
+                if parm_count >= 10:
+                    most_parm_functions[dt.get("id")] = parm_count
+        
+        methods = soup.find_all("dl", class_ = "method")
+        for dl in methods:
+            method_names = dl.find_all("dt")
+            for dt in method_names:
+                parameters = dt.find_all("em", class_ = "sig-param")
+                parm_count = 0
+
+                for _ in parameters:
+                    parm_count += 1
+
+                if parm_count >= 10:
+                    most_parm_functions[dt.get("id")] = parm_count
+
+    result = sorted(most_parm_functions.items(), key=lambda x: x[1], reverse=True)
+    swaped_result = []
+
+    for i in result:
+        swaped_result.append((i[1], i[0]))
+
+    return swaped_result
 
 
 def find_secret_tea_party(base_url: str) -> Optional[str]:
@@ -259,7 +308,7 @@ def scrap_all(base_url: str) -> FullScrap:
     scrap = FullScrap(
         linux_only_availability=get_linux_only_availability(),
         most_visited_webpage=get_most_visited_webpage(),
-        changes=get_changes(base_url),
+        changes=get_changes(),
         params=get_most_params(base_url),
         tea_party=find_secret_tea_party(base_url)
     )
